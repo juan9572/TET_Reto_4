@@ -83,21 +83,39 @@ Es importante destacar que aunque en este proyecto se está utilizando AWS, los 
 Una vez tengamos listo estos requisitos, podremos seguir con el despliegue.
 
 ### 2. NFS
+Para nuestro NFS vamos a utilizar el servicio de AWS llamado EFS, para crearlo nos dirigimos a la sección de servicios -> Almacenamiento -> EFS.
+
 ![nfs1](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-1.png)
+
+Una vez en esa sección, le damos a crear un sistema de archivos.
 
 ![nfs2](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-2.png)
 
+Cuando nos salga la ventana le damos al boton de "Personalizar".
+
 ![nfs3](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-3.png)
+
+Elegimos la personalizacion estandar y activamos el checkbox que nos habilita las copias de seguridad.
 
 ![nfs4](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-4.png)
 
+En la sección de "Acceso a la red" elegimos la VPC en la que estamos desplegando los recursos de nuestro proyecto, elegimos una *avaliability zone* y le asignamos el *security group* que creamos anteriormente para el EFS.
+
 ![nfs5](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-5.png)
+
+Despues de creado nos deberia salir una pantalla como la siguiente.	
 
 ![nfs6](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-7.png)
 
+Luego nos dirigimos a la sección sistemas de archivos, seleccionamos el que acabamos de crear y le damos en "Ver detalles".
+
 ![nfs7](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-8.png)
 
+Una vez ahí, le damos al boton "Asociar".
+
 ![nfs8](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-9.png)
+
+Y seleccionamos el "Montaje a través de DNS" y nos sale ese comando. Con ese comando podemos hacer el montaje cuando estemos intalando la imagen de moodle para almacenar todos los archivos de instalacion en el NFS server.
 
 ![nfs9](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-10.png)
 
