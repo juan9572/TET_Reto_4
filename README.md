@@ -120,23 +120,44 @@ Y seleccionamos el "Montaje a través de DNS" y nos sale ese comando. Con ese co
 ![nfs9](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/NFS/NFS-10.png)
 
 ### 3. Base de datos
+
+Nos dirigimos a la seccion de "Servicios".
+
 ![bd1](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-1.png)
+
+Un vez ahi le damos click al item "Base de datos" y luego seleccionamos "RDS".
 
 ![bd2](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-2.png)
 
+Una vez dentro, le damos al boton para crear la base de datos.
+
 ![bd3](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-3.png)
+
+Elegimos la creacion estandar y seleccionamos el motor "MySQL".
 
 ![bd4](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-4.png)
 
+Le damos click al checkbox de "Capa gratuita", le ponemos un nombre a nuestra base de datos y le definimos las credenciales de acceso (user y password).
+
 ![bd5](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-5.png)
+
+Elegimos la opcion de "Clases con rafagas", seleccionamos la *db.t3.micro*.
 
 ![bd6](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-6.png)
 
+Optamos por unas 20GiB SSD de almacenamiento con escalado automatico integrado y con un maximo de 1000 GiB.
+
 ![bd7](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-7.png)
+
+Configuramos la conectividad de tal manera que no se conecte a un EC2 especifico y le asignamos la misma VPC que a los demas recursos.
 
 ![bd8](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/Db-7.5.png)
 
+Con eso deberiamos estar listos, le damos a crear la database y nos debe redireccionar al dashboard. Una vez ahi le damos click a la base de datos que acabamos de crear.
+
 ![bd9](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-8.png)
+
+Y si bajamos un poco deberiamos ver el punto de enlace con el que, desde un cliente MySQL, nos  podemos conectar a la base de datos con las credenciales que definimos.
 
 ![bd10](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-9.png)
 ### 4. Moodle
@@ -241,38 +262,72 @@ Y seleccionamos el "Montaje a través de DNS" y nos sale ese comando. Con ese co
 #### 5.2 Creando certificado SSL
 
 ### 6. Grupo de escalamiento automático
+
+En el dashboard de EC2 nos vamos a la seccion de "Instancias", seleccionamos nuestra maquina de Moodle, click derecho y vamos a "Imagen y plantillas" -> Crear Imagen.
+
 ![asg-0](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-0.png)
 
+Una vez ahi, le ponemos un nombre y una breve descripcion a la imagen. Habilitamos el "Sin reiniciar".
 
 ![asg-0-5](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-0-5.png)
 
+En el dashboard de EC2 vamos a la seccion de "Plantillas de lanzamiento" y le damos al boton de "Crear plantilla de lanzamiento".
+
 ![asg-2](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-2.png)
+
+Cuando nos redireccione le ponemos un nombre y una breve descripcion a la plantilla. Por ultimo habilitamos la opcion de "Orientacion sobre Auto Scaling".
 
 ![asg-3](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-3.png)
 
+Especificamos que la imagen es de nuestra propiedad y le asignamos la imagen que creamos previamente.
+
 ![asg-4](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-4.png)
+
+Elegimos la *t2.micro* que es gratis y le asignamos un key pair.
 
 ![asg-5](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-5.png)
 
+En "Subred" elegimos "No incluir en la plantilla de lanzamiento". Seleccionamos un grupo de seguridad existente y le ponemos la que previamente habiamos creado.
+
 ![asg-6](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-6.png)
+
+Le damos a "Crear grupo de Auto Scaling.
 
 ![asg-7](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-7.png)
 
+Le ponemos un nombre al grupo de auto scaling. Elegimos la plantilla que creamos previamente y dejamos la version en Default.
+
 ![asg-8](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-8.png)
+
+Seleccionamos la misma VPC que en todos los recursos y habilitamos todas las *avaliability zones* disponibles.
 
 ![asg-9](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-9.png)
 
+Le asociamos un balanceador de carga existente. Y elegimos entre los target groups que tenemos disponibles. En nuestro caso el target group se llama "Moodle-Group | HTTP".
+
 ![asg-10](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-10.png)
+
+Seleccionamos la opcion que dice que no existe un VPC Lattice para asociar. Y activamos las comprobaciones de estado de Elastic Load Balancing.
 
 ![asg-11](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-11.png)
 
+Le ponemos 300 segundos en el periodo de gracia de comprobacion de estado y habilitamos la recopilacion de CloudWatch.
+
 ![asg-12](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-12.png)
+
+En esta seccion especificamos el maximo, el minimo y el deseado de la cantidad de maquinas que queremos tener corriendo a la vez.
 
 ![asg-13](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-13.png)
 
+En politicas de escalado seleccionamos la que es de seguimiento de destino y el tipo de metrica usada va a ser "Utilizacion de la CPU" en donde se espera que un valor de utilizacion promedio sea del 50%.
+
 ![asg-14](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-14.png)
 
+Omitimos la opcion de recibir notificaciones.
+
 ![asg-15](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-15.png)
+
+No agregamos etiquetas.
 
 ![asg-16](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Auto%20scaling%20group/ASG-16.png)
 
