@@ -1,0 +1,25 @@
+version: '3'
+services:
+ moodle:
+   image: bitnami/moodle:latest
+   privileged: true
+   ports:
+     - "80:8080"
+   environment:
+     - MOODLE_DATABASE_USER=admin
+     - MOODLE_DATABASE_TYPE=mysqli
+     - MOODLE_DATABASE_PASSWORD=12345678
+     - MOODLE_DATABASE_NAME=moodle
+     - MOODLE_DATABASE_HOST=db-moodle.c5nfjbrq8d6k.us-east-1.rds.amazonaws.com
+   volumes:
+     - moodle_data:/bitnami/moodle
+     - nfs-data:/bitnami/moodle
+   restart: always
+volumes:
+ moodle_data:
+ nfs-data:
+   driver: local
+   driver_opts:
+     type: nfs
+     o: addr=fs-08a80be0aa8fe7d6d.efs.us-east-1.amazonaws.com,vers=4.1,hard,rsize=1048576,wsize=1048576,timeo=600,retrans=2,noresvport
+     device: ":/"
