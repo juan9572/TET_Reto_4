@@ -161,106 +161,197 @@ Y si bajamos un poco deberiamos ver el punto de enlace con el que, desde un clie
 
 ![bd10](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/DB/DB-9.png)
 ### 4. Moodle
+Ahora procederemos a conectarnos a nuestra máquina mediante SSH, cuando estemos en esta vamos a instalar Docker para poder descarga una imagen de Moodle, estos pasos están en la documentación oficial de Docker.
+1.  Desinstalar versiones antiguas de Docker usando el siguiente comando:
+```bash
+sudo apt-get remove docker docker-engine docker.io containerd runc
+```
+2.  Configurar el repositorio Ubuntu usando los siguientes comandos:
+```bash
+sudo apt-get update
+sudo apt-get install \
+    ca-certificates \
+    curl \
+    gnupg
+```
+3.  Añadir la clave GPG oficial de Docker usando el siguiente comando:
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+```
+4. Usar el siguiente comando para configurar el repositorio:
+```bash
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+5.  Actualizar la lista de paquetes usando el siguiente comando:
+```bash
+sudo apt-get update
+```
+6. Instalar Docker Engine, containerd y Docker Compose usando el siguiente comando:
+```bash
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+Ahora tenemos Docker listo en nuestra máquina, necesitaremos poder acceder a nuestra instancia de la base de datos creada anteriormente y poder crear una una base de datos para que Moodle pueda hacer la configuración de todo su contenido allí, para esto necesitaremos instalar un cliente de MYSQL y creamos una base de datos.
+- Creamos el cliente:
+	```bash
+	sudo apt-get update
+	sudo apt-get install mysql-client
+	```
+- Nos conectamos a la db:
+	```bash
+	mysql -h db-moodle.c5nfjbrq8d6k.us-east-1.rds.amazonaws.com -u admin -p
+	```
+- Creamos la base de datos para Moodle:
+	```sql
+	 CREATE DATABASE moodle DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+	```
+Ahora con esto si podremos instalar nuestro Moodle.
 
 #### 4.1 Instalación de Moodle
+- Creamos un [docker-compose.yml](https://github.com/juan9572/TET_Reto_4/blob/main/docker-compose.yml) de la imagen de bitnami/moodle, con el montaje del NFS:
+	```yml
+	version: '3'
+	services:
+	 moodle:
+	   image: bitnami/moodle:latest
+	   privileged: true
+	   ports:
+	     - "80:8080"
+	   environment:
+	     - MOODLE_DATABASE_USER=admin
+	     - MOODLE_DATABASE_TYPE=mysqli
+	     - MOODLE_DATABASE_PASSWORD=12345678
+	     - MOODLE_DATABASE_NAME=moodle
+	     - MOODLE_DATABASE_HOST=db-moodle.c5nfjbrq8d6k.us-east-1.rds.amazonaws.com
+	   volumes:
+	     - moodle_data:/bitnami/moodle
+	     - nfs-data:/bitnami/moodle
+	   restart: always
+	volumes:
+	 moodle_data:
+	 nfs-data:
+	   driver: local
+	   driver_opts:
+	     type: nfs
+	     o: addr=fs-08a80be0aa8fe7d6d.efs.us-east-1.amazonaws.com,vers=4.1,hard,rsize=1048576,wsize=1048576,timeo=600,retrans=2,noresvport
+	     device: ":/"
+	```
+Como se puede apreciar en __environment__ en  "MOODLE_DATABASE_HOST" se coloca el link que vimos cuando configuramos la base de datos y en el volumen __nfs-data__ en "addr" se coloca el link que nos salía para realizar el montaje.
+- Corremos el docker-compose.yml
+``` bash
+sudo docker compose up -d
+```
+Después de realizar esto el contendor instalara Moodle, inicializara la base de datos y creara el montaje en el directorio de los archivos fuentes de Moodle, ahora lo que haremos es entrar a este Moodle mediante la **IP** de nuestra máquina por el **puerto 80** y vamos al apartado de **"Sing in"**.
 ![m1](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-1.png)
-
+Nos loguemos con nuestro usuario, por defecto en la imagen de bitnami dice que le "usuario" es "user" y el "password" es "bitnami".
 ![m2](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-2.png)
-
+Puede que nos pida registrar nuestra página le damos registrar y allí nos pedirán los datos relacionados al dueño de la página y cuando lo hagamos veremos la página funcionando correctamente.
 ![m3](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-3.png)
-
 #### 4.2 Instalación de VPL JAIL SERVER
+Creamos otra EC2 y siguiendo los mismo pasos de instalación de Docker, vamos a proceder hasta que ya tengamos listo el Docker.
+
+Una vez listo le vamos a decir que corra una imagen de Docker para poder ejecutar remotamente el VPL-Jail-System que es el juez para el tema de compilar los programas y ejecutarlos.
+```bash
+	sudo docker run -p 80:81 --name vpl --restart=always --privileged -d gabrielbdec/vpl-jail:3.0.0
+```
+Ahora siguiendo desde nuestro Moodle.
+Una vez logueados nos vamos a la configuración del sitio.
 ![m4](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-4.png)
-
+Hay una pestaña llamada "plguins" le damos allí y le damos "Install plugins from the Moodle plugins directory", cuando le damos allí nos llevará al repositorio de Moodle donde se encuentran todos los plugins que podemos usar para la página
 ![m5](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-5.png)
-
+Buscamos el plugin para el VPL
 ![m6](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-6.png)
-
+Lo descargamos
 ![m7](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-7.png)
-
+Y ahora podemos instalarlo, desde el zip que nos hemos descargado.
 ![m8](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-8.png)
-
+Lo instalamos
 ![m9](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-9.png)
-
+Le decimos que actualice la base de datos y siguiente.. siguiente..
 ![m10](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-10.png)
-
+y cuando termine podremos encontrar que el plugin ya esta disponible, si le damos allí podemos ver las configuraciones.
 ![m11](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-11.png)
-
+Buscamos la configuración del Execution servers config y allí ponemos la ip de nuestra máquina la cual tiene el VPL-Jail-System corriendo.
 ![m12](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-12.png)
-
+Ahora volvemos al inicio y creamos un curso para nuestro sitio de Moodle
 ![m13](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-13.png)
-
+Ponemos su nombre y su nombre abreviado.
 ![m14](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-14.png)
-
+Cuando lo creemos deberemos ver algo así, ahora agregaremos una actividad de Moodle de VPL, para ello nos ponemos en el modo de edición:
 ![m15](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-15.png)
-
+Ahora creamos una nueva actividad.
 ![m16](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-16.png)
-
+Le indicamos que sea de tipo VPL
 ![m17](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-17.png)
-
+Colocamos el nombre de la actividad y la creamos.
 ![m18](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/Moodle/Moodle-18.png)
+Y ahora tenemos nuestra actividad de VPL lista corriendo con su remote VPL-Jail-System corriendo.
 ### 5. Balanceador de carga
+Ahora procederemos a crear nuestro balanceador de carga el cual se integrara con el auto scaling group, para ello volvemos a nuestro AWS y buscamos en la sección de EC2, **"Balanceadores de carga"**
 ![bl](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-5.png)
-
+Allí le daremos crear nuevo balanceador de carga
 ![bl1](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-6.png)
-
+Veremos 3 opciones de balanceadores, en este caso seleccionamos la opción de balanceador de carga de aplicación.
 ![bl3](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-7.png)
-
+Allí colocaremos su nombre, de que tipo será y como se puede conectar a este.
 ![bl4](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-8.png)
-
+le indicamos que mapee todas las zonas de disponibilidad y le seleccionamos la VPC
 ![bl5](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-9.png)
-
+Agregamos el sucrity group que ya creamos anteriormente.
 ![bl10](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-10.png)
-
+Configuramos un listener en el puerto 443 y le damos crear grupo
 ![bl11](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-11.png)
-
+#### 5.1 Creando grupo de balanceo
+En la creación del grupo le indicamos que es un grupo de instancias
 ![bl12](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-12.png)
-
+Ponemos el nombre del grupo, el puerto donde las máquinas de este grupo están escuchando, el vpc y el protocolo.
 ![bl13](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-13.png)
-
+además indicamos cual será la forma validar de que la máquina esta funcionando correctamente
 ![bl14](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-14.png)
-
+por último se nos pide indicar cuales instancias queremos para nuestro grupo de nuestro balanceador de carga, por el momento dejemos solo la que configuramos para Moodle
 ![bl15](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-15.png)
-
+Ahora volviendo a nuestro balanceador de carga, recargamos lo grupos y seleccionamos el que acabamos de crear
 ![bl16](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-16.png)
-
+#### 5.2 Creando certificado SSL
+Después nos pedirán el certificado SSL para nuestro balanceador de carga, le damos en solicitar uno con ACM
 ![bl17](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-17.png)
-
+Le damos solicitar
 ![bl18](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-18.png)
-
+Le indicamos que sea público
 ![bl19](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-19.png)
-
+ponemos el nombre de nuestro dominio web y el método en el cual podemos validar que ese dominio nos pertenezca, en este caso lo haremos por medio del DNS.
 ![bl20](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-20.png)
-
+Cuando lo solicitemos iremos a verlos y seleccionamos el que acabamos de crear
 ![bl21](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-21.png)
-
+allí encontraremos las instrucciones que debemos hacer para autenticar el certificado SSL, necesitaremos crear un registro CNAME en nuestro DNS que contenga la siguiente información.
 ![bl22](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-22.png)
-
+vamos a nuestro proveedor del dominio y en nuestros DNS, agregamos el que necesitamos.
 ![bl23](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-23.png)
-
+Pasado un rato, cuando los registros del DNS se hayan esparcido por internet, podremos volver a consultar el estado de nuestro certificado y ver si ya esta disponible
 ![bl24](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-24.png)
 
+Si estos es correcto podremos volver a la configuración de nuestro balanceador de carga, recargamos los certificados y seleccionamos el creado anteriormente.
 ![bl25](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-25.png)
-
+Por último nuestro balanceador de carga se debe ver algo así y lo creamos.
 ![bl26](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-26.png)
-
+Seleccionamos nuestro balanceador de carga y podremos ver el registro A que debemos poner en nuestro DNS del dominio web
 ![bl27](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-27.png)
-
+Ahora lo colocamos y ya es accesible nuestro sitio web desde el dominio web, ya que este apunta al balanceador de carga y este ya nos dará alguna instancia de Moodle
 ![bl28](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-28.png)
-
+Por último activaremos el sticky section, para ello nos iremos al apartado de balanceadores de carga, seleccionamos el creado y le damos listeners.
 ![bl29](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-29.png)
-
+allí veremos el grupo que habíamos creado, lo seleccionamos
 ![bl30](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-30.png)
-
+y ahora en el grupo le damos attributes y edit
 ![bl31](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-31.png)
-
+bajamos hasta que encontremos la opción Stickness y lo dejamos encargado al balanceador de carga y guardamos los cambios.
 ![bl32](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-32.png)
-
+Ahora si accedemos a nuestra web podremos ver que todo esta funcionado bien.
 ![bl33](https://raw.githubusercontent.com/juan9572/TET_Reto_4/main/LB/LB-33.png)
-#### 5.1 Creando grupo de balanceo
-
-#### 5.2 Creando certificado SSL
-
 ### 6. Grupo de escalamiento automático
 
 En el dashboard de EC2 nos vamos a la seccion de "Instancias", seleccionamos nuestra maquina de Moodle, click derecho y vamos a "Imagen y plantillas" -> Crear Imagen.
@@ -334,7 +425,8 @@ No agregamos etiquetas.
 ## Referencias
 ---
 
-- [How to Configure Apache Load Balancer](https://www.inmotionhosting.com/support/server/apache/apache-load-balancer/)
-- [Get Certbot (Docker)](https://eff-certbot.readthedocs.io/en/stable/install.html#alternative-1-docker)
-- [Setup a NFS Server With Docker](https://blog.ruanbekker.com/blog/2020/09/20/setup-a-nfs-server-with-docker/)
+- [Auto Scaling group with load balancing](https://docs.aws.amazon.com/autoscaling/ec2/userguide/attach-load-balancer-asg.html)
+- [Download moodle](https://docs.moodle.org/402/en/Git_for_Administrators)
+- [VPL Jail System’s documentation](https://vpl.dis.ulpgc.es/documentation/vpl-jail-system-2.6.0/index.html)
+- [Bitnami moodle](https://hub.docker.com/r/bitnami/moodle)
 - [Install Docker Desktop on Ubuntu](https://docs.docker.com/desktop/install/ubuntu/)
